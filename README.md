@@ -23,3 +23,6 @@ Conferidor visual e inteligente para jogos da Lotofácil.
 
 Janer Dorneles
 
+https://janerdorneles.github.io/Lotofacil-Max/
+
+
