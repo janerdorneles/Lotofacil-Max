@@ -2,5 +2,4 @@ MIT License
 
 Copyright (c) 2026 Janer Dorneles
 
-É concedida permissão, gratuitamente, a qualquer pessoa que obtenha uma cópia deste software,
-desde que mantenha os créditos…
+É concedida permissão, gratuitamente, a qualquer pessoa que obtenha uma cópia deste software, desde que mantenha os créditos…
