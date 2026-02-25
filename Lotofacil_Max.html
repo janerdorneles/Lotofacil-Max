@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotofácil Max - Conferência</title>
+    <style>
+        :root {
+            --bg-body: #0f172a; --bg-card: #1e293b; --bg-input: #0f172a;
+            --primary: #7c3aed; --primary-hover: #8b5cf6; --secondary: #334155;
+            --accent: #facc15; --success: #22c55e; --danger: #ef4444;
+            --text-main: #e5e7eb; --text-dim: #94a3b8; --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            
+            --card-width-std: 270px; 
+            --card-width-import: 414px; 
+            --card-height-std: 306px; 
+        }
+        
+        body { background: var(--bg-body); color: var(--text-main); font-family: sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 1400px; margin: auto; }
+        
+        header { text-align: center; margin-bottom: 20px; }
+        header h1 { color: var(--accent); margin: 0; font-size: 2rem; }
+        header p { color: var(--text-dim); margin: 5px 0 20px 0; }
+
+        .top-controls { text-align: center; margin-bottom: 30px; }
+
+        .cards-grid { 
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: start;
+        }
+
+        .card { 
+            background: var(--bg-card); 
+            padding: 15px; 
+            border-radius: 12px; 
+            border: 1px solid var(--secondary); 
+            box-shadow: var(--shadow);
+            width: var(--card-width-std);
+            min-height: var(--card-height-std);
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .card.import-card { width: var(--card-width-import); }
+
+        .card-title { 
+            font-size: 1.05rem; 
+            font-weight: bold; 
+            margin-bottom: 12px; 
+            color: var(--accent); 
+            display: flex; 
+            justify-content: space-between; 
+        }
+        
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+        
+        .num { 
+            background: var(--bg-input); border: 1px solid var(--secondary); 
+            aspect-ratio: 1; display: flex; align-items: center; justify-content: center; 
+            border-radius: 6px; cursor: pointer; 
+            font-size: 0.95rem; 
+            font-weight: bold; 
+        }
+        .num.selected-sorteio { background: var(--danger); color: white; border-color: var(--danger); }
+        .num.selected-jogo { background: var(--success); color: #000; border-color: var(--success); }
+
+        /* Ajuste 3: flash azul ao tentar selecionar além de 15 dezenas */
+        @keyframes flash-blue {
+            0%   { background: var(--bg-input); color: var(--text-main); border-color: var(--secondary); }
+            50%  { background: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 0 10px #3b82f6; }
+            100% { background: var(--bg-input); color: var(--text-main); border-color: var(--secondary); }
+        }
+        .num.flash-limit { animation: flash-blue 0.45s ease; }
+        
+        #importTexto { 
+            background: var(--bg-input); color: white; border: 1px solid var(--secondary); 
+            padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box;
+            height: 140px; resize: vertical; font-family: monospace; font-size: 0.85rem;
+        }
+
+        .btn { padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; margin-top: 5px; font-size: 0.85rem; }
+        .btn-primary { background: var(--primary); color: white; width: 100%; }
+        
+        @keyframes pulse-red {
+            0% { background-color: var(--primary); }
+            50% { background-color: var(--danger); box-shadow: 0 0 15px var(--danger); }
+            100% { background-color: var(--primary); }
+        }
+        .btn-blink { animation: pulse-red 0.8s infinite; }
+
+        .btn-outline { background: transparent; border: 1px solid var(--secondary); color: white; width: 100%; }
+        
+        .btn-danger-large { 
+            background: #450a0a; color: #f87171; border: 1px solid #7f1d1d; 
+            padding: 14px 35px; font-size: 1.15rem; width: auto; 
+        }
+        .btn-danger-large:hover { background: var(--danger); color: white; }
+        
+        select { 
+            background: var(--bg-input); 
+            color: white; 
+            border: 1px solid var(--secondary); 
+            padding: 8px; 
+            border-radius: 6px; 
+            width: 100%; 
+            margin-bottom: 10px; 
+            font-size: 0.95rem; 
+        }
+
+        .result-panel { 
+            margin: 30px auto; 
+            max-width: 800px; 
+            background: #1e293b; 
+            border-left: 5px solid var(--primary); 
+            padding: 25px; 
+            border-radius: 8px; 
+            text-align: center;
+        }
+        
+        .txt-premio-principal {
+            font-size: 1.15rem !important;
+            font-weight: normal; 
+            color: var(--text-dim) !important;
+            margin: 15px 0;
+        }
+
+        .result-table { width: 100%; border-collapse: collapse; margin-top: 20px; color: var(--text-main); }
+        .result-table th { border-bottom: 2px solid var(--secondary); padding: 12px; color: var(--accent); }
+        .result-table td { padding: 10px; border-bottom: 1px solid var(--secondary); }
+
+        .total-box { 
+            font-size: 1.6rem; color: var(--success); margin-top: 20px; 
+            border-top: 2px solid var(--secondary); padding-top: 15px; 
+            font-weight: bold;
+        }
+
+        .total-box .label-total {
+            color: #fffaf0;
+        }
+        
+        .toast { 
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+            background: var(--primary); color: white; padding: 12px 25px; 
+            border-radius: 8px; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+            font-weight: bold; text-align: center; min-width: 300px; 
+            white-space: pre-line;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 15px;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--secondary);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Lotofácil Max</h1>
+        <p>Conferência de Apostas</p>
+    </header>
+
+    <div class="top-controls">
+        <button class="btn btn-danger-large" onclick="App.limparTudo()">🗑️ Limpar Tudo</button>
+    </div>
+
+    <div class="cards-grid">
+        <div class="card">
+            <div class="card-title">1. Resultado Oficial</div>
+            <select id="selectConcurso" onchange="App.selecionarConcurso(this.value)">
+                <option value="">Carregando concursos...</option>
+            </select>
+            <div id="gridSorteio" class="grid"></div>
+        </div>
+
+        <div class="card import-card">
+            <div class="card-title">2. Importar Jogos</div>
+            <textarea id="importTexto" placeholder="Cole seus jogos aqui... 1 ou mais jogos.&#10;Ex: 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15"></textarea>
+            <button id="btnImportar" class="btn btn-primary" onclick="App.importar()">📥 Importar Jogos</button>
+            <button class="btn btn-outline" onclick="App.addJogoManual()">➕ Novo Jogo Manual</button>
+        </div>
+
+        <div id="jogosContainer" style="display: contents;"></div>
+    </div>
+
+    <div style="text-align: center; margin: 40px 0;">
+        <button class="btn btn-primary" style="background: var(--success); color: black; padding: 15px 40px; font-size: 1.1rem; width: auto;" onclick="App.conferirTudo()">📊 CONFERIR RESULTADOS</button>
+    </div>
+
+    <div id="resultadoArea"></div>
+
+    <footer>Desenvolvido por Janer Dorneles • Lotofácil Max</footer>
+</div>
+
+<script>
+const App = {
+    state: {
+        sorteioSet: new Set(),
+        jogos: [],
+        concursosData: [],
+        concursoSelecionado: null,
+        isOffline: false
+    },
+
+    init: async function() {
+        this.renderGridBase('gridSorteio', (n, el) => this.toggleSorteio(n, el));
+        this.loadStorage();
+        await this.fetchUltimos15();
+
+        document.getElementById('importTexto').addEventListener('input', function() {
+            const btn = document.getElementById('btnImportar');
+            if (this.value.trim().length > 0) {
+                btn.classList.add('btn-blink');
+            } else {
+                btn.classList.remove('btn-blink');
+            }
+        });
+    },
+
+    renderGridBase: function(id, callback) {
+        const container = document.getElementById(id);
+        container.innerHTML = '';
+        for (let i = 1; i <= 25; i++) {
+            const div = document.createElement('div');
+            div.className = 'num';
+            div.textContent = String(i).padStart(2, '0');
+            div.onclick = () => callback(i, div);
+            container.appendChild(div);
+        }
+    },
+
+    fetchUltimos15: async function() {
+        const select = document.getElementById('selectConcurso');
+        try {
+            const res = await fetch('https://servicebus2.caixa.gov.br/portaldeloterias/api/lotofacil');
+            const ultimo = await res.json();
+            const numFinal = ultimo.numero;
+            select.innerHTML = '<option value="">Selecione um concurso...</option>';
+            const promessas = [];
+            for (let i = 0; i < 15; i++) {
+                promessas.push(fetch(`https://servicebus2.caixa.gov.br/portaldeloterias/api/lotofacil/${numFinal - i}`).then(r => r.json()));
+            }
+            this.state.concursosData = await Promise.all(promessas);
+            this.state.concursosData.forEach((dados, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.textContent = `Concurso ${dados.numero} (${dados.dataApuracao})`;
+                select.appendChild(opt);
+            });
+            this.state.isOffline = false;
+        } catch (e) {
+            // Ajuste 1 + 2: ativa modo offline e atualiza texto do select
+            select.innerHTML = '<option value="offline">Offline: Seleção manual</option>';
+            this.state.isOffline = true;
+            this.state.concursoSelecionado = { offline: true };
+        }
+    },
+
+    selecionarConcurso: function(index) {
+        if (index === "") {
+            this.state.sorteioSet.clear();
+            this.state.concursoSelecionado = null;
+            document.querySelectorAll('#gridSorteio .num').forEach(n => n.classList.remove('selected-sorteio'));
+            return;
+        }
+        // Em modo offline não há dados de concurso para carregar no grid
+        if (this.state.isOffline) return;
+
+        const dados = this.state.concursosData[index];
+        this.state.concursoSelecionado = dados;
+        this.state.sorteioSet.clear();
+        const nodes = document.querySelectorAll('#gridSorteio .num');
+        nodes.forEach(n => n.classList.remove('selected-sorteio'));
+        dados.listaDezenas.forEach(d => {
+            const n = parseInt(d);
+            this.state.sorteioSet.add(n);
+            nodes[n-1].classList.add('selected-sorteio');
+        });
+    },
+
+    addJogoManual: function(numeros = []) {
+        const id = Date.now() + Math.random();
+        const jogo = { id, set: new Set(numeros) };
+        this.state.jogos.push(jogo);
+        this.renderJogoCard(jogo);
+        this.saveStorage();
+    },
+
+    renderJogoCard: function(jogo) {
+        const container = document.getElementById('jogosContainer');
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.id = `card-${jogo.id}`;
+        let gridHtml = '';
+        for(let i=1; i<=25; i++) {
+            const isSel = jogo.set.has(i) ? 'selected-jogo' : '';
+            gridHtml += `<div class="num ${isSel}" onclick="App.toggleNumJogo(${jogo.id}, ${i}, this)">${String(i).padStart(2, '0')}</div>`;
+        }
+        card.innerHTML = `
+            <div class="card-title">
+                <span>Jogo ${this.state.jogos.length}</span>
+                <button onclick="App.removerJogo(${jogo.id})" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
+            </div>
+            <div class="grid">${gridHtml}</div>
+        `;
+        container.appendChild(card);
+    },
+
+    conferirTudo: function() {
+        if (this.state.jogos.length === 0) {
+            return this.toast("Importe ou lance pelo menos 1 jogo!");
+        }
+
+        // Verifica se todos os jogos têm exatamente 15 dezenas
+        const errosJogos = [];
+        this.state.jogos.forEach((jogo, i) => {
+            if (jogo.set.size !== 15) {
+                errosJogos.push(`Jogo ${i + 1} * ${jogo.set.size}/15 Informe 15 dezenas!`);
+            }
+        });
+        if (errosJogos.length > 0) {
+            return this.toast(errosJogos.join('\n'));
+        }
+
+        if (this.state.sorteioSet.size < 15) return this.toast("Selecione os 15 números sorteados!");
+
+        // Ajuste 1: modo offline não exige concurso da API
+        if (!this.state.isOffline && !this.state.concursoSelecionado) {
+            return this.toast("Selecione um concurso da lista!");
+        }
+
+        // Ajuste 1: relatório offline — exibe acertos mas sem valores
+        if (this.state.isOffline) {
+            let htmlRelatorio = `
+                <div class="result-panel">
+                    <h2 style="margin:0 0 10px 0; color: var(--accent);">📊 Relatório de Premiação</h2>
+                    <p><strong>Concurso:</strong> <span style="color: var(--text-dim);">Offline — sem dados da API</span></p>
+                    <p class="txt-premio-principal">Prêmio 15 acertos: <span style="font-weight: bold; color: var(--text-dim);">Offline</span></p>
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th>Aposta</th>
+                                <th>Acertos</th>
+                                <th>Prêmio Individual</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            this.state.jogos.forEach((jogo, i) => {
+                const acertos = [...jogo.set].filter(n => this.state.sorteioSet.has(n)).length;
+                const corAcerto = acertos >= 11 ? 'var(--success)' : 'var(--text-dim)';
+                htmlRelatorio += `
+                    <tr>
+                        <td>Jogo ${i+1}</td>
+                        <td style="color: ${corAcerto}; font-weight: bold;">${acertos} acertos</td>
+                        <td style="color: var(--text-dim);">Offline</td>
+                    </tr>
+                `;
+            });
+
+            htmlRelatorio += `
+                        </tbody>
+                    </table>
+                    <div class="total-box">
+                        <span class="label-total">Total a receber:</span> <span style="color: var(--text-dim); font-size: 1.2rem;">Offline</span>
+                    </div>
+                </div>
+            `;
+
+            const area = document.getElementById('resultadoArea');
+            area.innerHTML = htmlRelatorio;
+            area.scrollIntoView({ behavior: 'smooth' });
+            return;
+        }
+
+        // Modo online normal
+        const dadosCaixa = this.state.concursoSelecionado;
+        const rateio = dadosCaixa.listaRateioPremio;
+	const ganhadores = rateio[0].numeroDeGanhadores;
+	const display15Acertos = (ganhadores === 0) 
+    	    ? "Acumulado" 
+            : `(${ganhadores} ${ganhadores === 1 ? 'aposta ganhadora' : 'apostas ganhadoras'}) R$ ${rateio[0].valorPremio.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+
+        let htmlRelatorio = `
+            <div class="result-panel">
+                <h2 style="margin:0 0 10px 0; color: var(--accent);">📊 Relatório de Premiação</h2>
+                <p><strong>Concurso:</strong> ${dadosCaixa.numero} (${dadosCaixa.dataApuracao})</p>
+                <p class="txt-premio-principal">Prêmio 15 acertos: <span style="font-weight: bold; color: var(--text-main);">${display15Acertos}</span></p>
+                
+                <table class="result-table">
+                    <thead>
+                        <tr>
+                            <th>Aposta</th>
+                            <th>Acertos</th>
+                            <th>Prêmio Individual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        let valorTotalAcumulado = 0;
+
+        this.state.jogos.forEach((jogo, i) => {
+            const acertos = [...jogo.set].filter(n => this.state.sorteioSet.has(n)).length;
+            let valorGanho = 0;
+
+            if (acertos === 15) valorGanho = rateio[0].valorPremio;
+            else if (acertos === 14) valorGanho = rateio[1].valorPremio;
+            else if (acertos === 13) valorGanho = rateio[2].valorPremio;
+            else if (acertos === 12) valorGanho = rateio[3].valorPremio;
+            else if (acertos === 11) valorGanho = rateio[4].valorPremio;
+
+            valorTotalAcumulado += valorGanho;
+            const corAcerto = acertos >= 11 ? 'var(--success)' : 'var(--text-dim)';
+            
+            htmlRelatorio += `
+                <tr>
+                    <td>Jogo ${i+1}</td>
+                    <td style="color: ${corAcerto}; font-weight: bold;">${acertos} acertos</td>
+                    <td style="color: ${valorGanho > 0 ? 'var(--success)' : 'inherit'}">
+                        R$ ${valorGanho.toLocaleString('pt-BR', {minimumFractionDigits:2})}
+                    </td>
+                </tr>
+            `;
+        });
+
+        htmlRelatorio += `
+                    </tbody>
+                </table>
+                <div class="total-box">
+                    <span class="label-total">Total a receber:</span> R$ ${valorTotalAcumulado.toLocaleString('pt-BR', {minimumFractionDigits:2})}
+                </div>
+            </div>
+        `;
+
+        const area = document.getElementById('resultadoArea');
+        area.innerHTML = htmlRelatorio;
+        area.scrollIntoView({ behavior: 'smooth' });
+    },
+
+    importar: function() {
+        const texto = document.getElementById('importTexto').value;
+        const linhas = texto.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+        if (linhas.length === 0) return this.toast("Nenhum número encontrado");
+
+        const erros = [];
+        const jogosValidos = [];
+
+        linhas.forEach((linha, idx) => {
+            const nums = (linha.match(/\d+/g) || [])
+                .map(Number)
+                .filter(n => n >= 1 && n <= 25);
+
+            if (nums.length !== 15) {
+                erros.push(`Jogo ${idx + 1} * ${nums.length}/15 Informe 15 dezenas!`);
+            } else {
+                jogosValidos.push(nums);
+            }
+        });
+
+        if (erros.length > 0) {
+            return this.toast(erros.join('\n'));
+        }
+
+        jogosValidos.forEach(nums => this.addJogoManual(nums));
+
+        document.getElementById('importTexto').value = '';
+        document.getElementById('btnImportar').classList.remove('btn-blink');
+        this.toast("Importação concluída!");
+    },
+
+    toggleSorteio: function(num, el) {
+        if (this.state.sorteioSet.has(num)) {
+            this.state.sorteioSet.delete(num);
+            el.classList.remove('selected-sorteio');
+        } else {
+            if (this.state.sorteioSet.size >= 15) {
+                // Ajuste 3: flash azul momentâneo ao tentar ultrapassar 15 dezenas
+                el.classList.remove('flash-limit');
+                void el.offsetWidth; // força reflow para reiniciar a animação
+                el.classList.add('flash-limit');
+                el.addEventListener('animationend', () => el.classList.remove('flash-limit'), { once: true });
+                return;
+            }
+            this.state.sorteioSet.add(num);
+            el.classList.add('selected-sorteio');
+        }
+    },
+
+    toggleNumJogo: function(id, num, el) {
+    	const jogo = this.state.jogos.find(j => j.id === id);
+    	if (jogo.set.has(num)) {
+            jogo.set.delete(num);
+            el.classList.remove('selected-jogo');
+    	} else {
+            if (jogo.set.size >= 15) {
+                el.classList.remove('flash-limit');
+                void el.offsetWidth;
+                el.classList.add('flash-limit');
+                el.addEventListener('animationend', () => el.classList.remove('flash-limit'), { once: true });
+                return;
+            }
+            jogo.set.add(num);
+            el.classList.add('selected-jogo');
+        }
+        this.saveStorage();
+    },
+
+    removerJogo: function(id) {
+        this.state.jogos = this.state.jogos.filter(j => j.id !== id);
+        const card = document.getElementById(`card-${id}`);
+        if(card) card.remove();
+        this.saveStorage();
+    },
+
+    limparTudo: async function() {
+        if (confirm("Tem certeza que deseja apagar TUDO (Jogos e Concurso)?")) {
+            localStorage.removeItem('lotoMax_Jogos');
+            this.state.jogos = [];
+            this.state.sorteioSet.clear();
+            this.state.concursoSelecionado = null;
+            this.state.isOffline = false;
+
+            document.querySelectorAll('#gridSorteio .num').forEach(n => n.classList.remove('selected-sorteio'));
+            document.getElementById('jogosContainer').innerHTML = '';
+            document.getElementById('resultadoArea').innerHTML = '';
+            document.getElementById('importTexto').value = '';
+            document.getElementById('btnImportar').classList.remove('btn-blink');
+
+            await this.fetchUltimos15();
+            this.toast("Sistema resetado.");
+        }
+    },
+
+    saveStorage: function() {
+        localStorage.setItem('lotoMax_Jogos', JSON.stringify(this.state.jogos.map(j => [...j.set])));
+    },
+
+    loadStorage: function() {
+        const saved = localStorage.getItem('lotoMax_Jogos');
+        if (saved) JSON.parse(saved).forEach(nums => this.addJogoManual(nums));
+    },
+
+    toast: function(msg) {
+        const oldToast = document.querySelector('.toast');
+        if(oldToast) oldToast.remove();
+
+        const t = document.createElement('div');
+        t.className = 'toast';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => { if(t) t.remove(); }, 4000);
+    }
+};
+
+window.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>
